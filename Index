@@ -1,0 +1,1160 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home - Drone Race Timer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      background-image: url('background.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .pulse {
+      animation: pulse 1s ease-in-out infinite;
+    }
+    .nav-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .logo:hover {
+      transform: scale(1.05);
+    }
+    .marquee-container {
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      background-color: rgba(224, 247, 255, 0.9);
+      padding: 10px 0;
+      margin-top: 10px;
+    }
+    .marquee-text {
+      display: inline-block;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    header, section, footer {
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    header {
+      background-color: rgba(37, 99, 235, 0.9);
+    }
+    footer {
+      background-color: rgba(37, 99, 235, 0.9);
+    }
+    .tvet-logo {
+      width: 800px;
+      height: 118px;
+      background-color: transparent;
+      padding: 5px;
+      border-radius: 5px;
+      transition: transform 0.3s ease;
+    }
+    .tvet-logo:hover {
+      transform: scale(1.01);
+    }
+    .medal-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      transition: transform 0.3s ease;
+    }
+    .medal-icon:hover {
+      transform: scale(1.2);
+    }
+    .medal-gold {
+      color: #FFD700;
+    }
+    .medal-silver {
+      color: #C0C0C0;
+    }
+    .medal-bronze {
+      color: #CD7F32;
+    }
+    .medal-card {
+      transition: transform 0.3s ease;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+    .medal-card:hover {
+      transform: translateY(-5px);
+    }
+    header .flex-col {
+      padding: 20px 0;
+    }
+    header .flex.items-center {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .nav-btn {
+      padding: 8px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-btn i {
+      font-size: 1.2rem;
+    }
+    .editable-text:hover {
+      background-color: #e0f7ff;
+      cursor: pointer;
+    }
+    .custom-dialog {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      padding: 20px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translate(-50%, -60%); }
+      to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+    .custom-dialog h3 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #2563eb;
+      margin-bottom: 15px;
+    }
+    .custom-dialog p {
+      font-size: 1.1rem;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .custom-dialog .dialog-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    .custom-dialog button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.1s ease, background-color 0.3s ease;
+    }
+    .custom-dialog button:hover {
+      transform: scale(1.05);
+    }
+    .custom-dialog .confirm-btn {
+      background-color: #2563eb;
+      color: white;
+    }
+    .custom-dialog .confirm-btn:hover {
+      background-color: #1e4fc7;
+    }
+    .custom-dialog .cancel-btn {
+      background-color: #e5e7eb;
+      color: #333;
+    }
+    .custom-dialog .cancel-btn:hover {
+      background-color: #d1d5db;
+    }
+    .dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+    .final-countdown-9 { color: #22c55e; }
+    .final-countdown-8 { color: #16a34a; }
+    .final-countdown-7 { color: #15803d; }
+    .final-countdown-6 { color: #facc15; }
+    .final-countdown-5 { color: #eab308; }
+    .final-countdown-4 { color: #f97316; }
+    .final-countdown-3 { color: #ef4444; }
+    .final-countdown-2 { color: #dc2626; }
+    .final-countdown-1 { color: #b91c1c; }
+    .final-countdown-0 { color: #991b1b; }
+  </style>
+</head>
+<body class="text-gray-800 font-roboto">
+  <!-- Header -->
+  <header class="text-white py-6 text-center">
+    <div class="flex flex-col items-center">
+      <div class="flex items-center gap-4">
+        <img src="tvet-logo.png" alt="TVET Malaysia Logo" class="tvet-logo">
+        <i class="fas fa-drone text-6xl text-blue-100 logo transition-transform"></i>
+      </div>
+      <h1 class="text-3xl font-bold mt-2">AeroXplore 2025 Hari Terbuka ADTEC JTM KAMPUS SANDAKAN</h1>
+      <p id="dateTime" class="text-lg mt-2">Wednesday, May 14, 2025, 02:38 PM +08</p>
+      <div class="flex flex-wrap justify-center gap-2 my-2">
+        <a href="ranking.html" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white nav-btn transition-transform">
+          <i class="fas fa-clock"></i>
+        </a>
+        <a href="admin.html" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white nav-btn transition-transform">
+          <i class="fas fa-table"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Timer Section -->
+  <section class="flex flex-col items-center my-8">
+    <h2 id="timerTitle" class="text-2xl font-semibold mb-4 editable-text" contenteditable="true">Timer Perlumbaan</h2>
+    <div id="participantDisplay" class="text-xl font-bold text-blue-600 mb-4 hidden"></div>
+    <select id="participantSelect" class="mb-4 p-2 rounded-lg bg-white border border-blue-600 text-blue-800">
+      <option value="">Pilih Peserta</option>
+    </select>
+    <div id="timer" class="text-6xl md:text-8xl font-bold text-blue-800 bg-white p-4 rounded-lg shadow-lg">
+      00:00:000
+    </div>
+    <div class="mt-6 flex flex-wrap justify-center items-center space-x-4">
+      <select id="timerLimit" class="bg-white border border-blue-600 text-blue-800 px-8 py-3 rounded-lg text-lg">
+        <option value="" disabled selected>Had Masa:</option>
+        <option value="1">1 Minit</option>
+        <option value="3">3 Minit</option>
+        <option value="5">5 Minit</option>
+        <option value="7">7 Minit</option>
+        <option value="9">9 Minit</option>
+        <option value="12">12 Minit</option>
+      </select>
+      <button id="startBtn" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 text-lg">Start</button>
+      <button id="pauseBtn" class="bg-yellow-600 text-white px-8 py-3 rounded-lg hover:bg-yellow-700 text-lg" disabled>Pause</button>
+      <button id="stopBtn" class="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 text-lg" disabled>Stop</button>
+      <button id="resetBtn" class="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 text-lg">Reset</button>
+    </div>
+  </section>
+
+  <!-- Top 3 Chart -->
+  <section class="max-w-4xl mx-auto my-8">
+    <h2 class="text-2xl font-semibold text-center mb-4">KEDUDUKAN TIGA TERATAS</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="medal-card bg-yellow-400 text-center p-4 rounded-lg shadow-lg">
+        <i class="fas fa-medal medal-icon medal-gold"></i>
+        <h3 class="text-xl font-bold">PERTAMA</h3>
+        <p id="goldName">Tiada</p>
+        <p id="goldTime">00:00:000</p>
+      </div>
+      <div class="medal-card bg-gray-300 text-center p-4 rounded-lg shadow-lg">
+        <i class="fas fa-medal medal-icon medal-silver"></i>
+        <h3 class="text-xl font-bold">KEDUA</h3>
+        <p id="silverName">Tiada</p>
+        <p id="silverTime">00:00:000</p>
+      </div>
+      <div class="medal-card bg-yellow-600 text-center p-4 rounded-lg shadow-lg">
+        <i class="fas fa-medal medal-icon medal-bronze"></i>
+        <h3 class="text-xl font-bold">KETIGA</h3>
+        <p id="bronzeName">Tiada</p>
+        <p id="bronzeTime">00:00:000</p>
+      </div>
+    </div>
+    <div class="marquee-container">
+      <div id="marqueeText" class="marquee-text">Tiada kedudukan tersedia</div>
+    </div>
+  </section>
+
+  <!-- Modal for Confirming Time and Penalty -->
+  <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+      <h3 class="text-xl font-bold mb-4">Sahkan Catatan Masa</h3>
+      <p id="modalTime" class="mb-4">Waktu: 00:00:000</p>
+      <label class="block mb-2">Penalti (saat):</label>
+      <input id="penaltyInput" type="number" step="any" value="0" class="w-full p-2 border rounded-lg mb-4">
+      <div class="flex justify-end gap-4">
+        <button id="cancelBtn" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Batal</button>
+        <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Simpan</button>
+      </div>
+      <p id="autoSaveCountdown" class="text-sm text-gray-600 mt-4">Menyimpan secara automatik dalam: 30 saat</p>
+    </div>
+  </div>
+
+  <!-- Custom Dialog for Confirmation -->
+  <div id="startConfirmDialog" class="custom-dialog" style="display: none;">
+    <h3>Peserta telah bersedia?</h3>
+    <p id="confirmParticipantName"></p>
+    <div class="dialog-buttons">
+      <button id="confirmStartBtn" class="confirm-btn">Ya</button>
+      <button id="cancelStartBtn" class="cancel-btn">Batal</button>
+    </div>
+  </div>
+  <div id="startConfirmOverlay" class="dialog-overlay" style="display: none;"></div>
+
+  <!-- Custom Dialog for No Participant Selected -->
+  <div id="noParticipantDialog" class="custom-dialog" style="display: none;">
+    <h3>Sila pilih peserta terlebih dahulu!</h3>
+    <div class="dialog-buttons">
+      <button id="closeNoParticipantBtn" class="confirm-btn">OK</button>
+    </div>
+  </div>
+  <div id="noParticipantOverlay" class="dialog-overlay" style="display: none;"></div>
+
+  <!-- Custom Dialog for Reset Confirmation -->
+  <div id="resetConfirmDialog" class="custom-dialog" style="display: none;">
+    <h3>Adakah anda pasti mahu menetapkan semula timer?</h3>
+    <div class="dialog-buttons">
+      <button id="confirmResetBtn" class="confirm-btn">Ya</button>
+      <button id="cancelResetBtn" class="cancel-btn">Batal</button>
+    </div>
+  </div>
+  <div id="resetConfirmOverlay" class="dialog-overlay" style="display: none;"></div>
+
+  <!-- Custom Dialog for IP Input -->
+  <div id="ipInputDialog" class="custom-dialog" style="display: none;">
+    <h3>Masukkan Alamat IP ESP8266</h3>
+    <input id="ipInput" type="text" placeholder="Contoh: 192.168.1.100" class="w-full p-2 border rounded-lg mb-4 text-center">
+    <div class="dialog-buttons">
+      <button id="saveIpBtn" class="confirm-btn">Simpan</button>
+      <button id="cancelIpBtn" class="cancel-btn">Batal</button>
+    </div>
+  </div>
+  <div id="ipInputOverlay" class="dialog-overlay" style="display: none;"></div>
+
+  <!-- Fullscreen and Connect Buttons -->
+  <div class="fixed bottom-4 right-4 flex gap-4">
+    <button id="connectBtn" class="bg-green-600 text-white p-3 rounded-full shadow-lg hover:bg-green-700">
+      <i id="connectIcon" class="fas fa-wifi"></i>
+    </button>
+    <button id="fullscreenBtn" class="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700">
+      <i id="fullscreenIcon" class="fas fa-expand"></i>
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-white text-center py-4 mt-8">
+    <p>@2025 TautoILPSDK</p>
+  </footer>
+
+  <script>
+    // Default IP
+    const defaultIp = '192.168.159.22';
+    let espIp = localStorage.getItem('espIp') || defaultIp;
+
+    // Update date and time
+    function updateDateTime() {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' };
+      document.getElementById('dateTime').textContent = now.toLocaleDateString('ms-MY', options);
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    // Convert time string (MM:SS:ms) to milliseconds
+    function timeToMilliseconds(timeStr) {
+      if (!timeStr || timeStr === '-' || typeof timeStr !== 'string') return 0;
+      const parts = timeStr.split(':');
+      if (parts.length !== 3) return 0;
+      const [minutes, seconds, milliseconds] = parts.map(Number);
+      if (isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds)) return 0;
+      return (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
+    }
+
+    // Format milliseconds to MM:SS:ms
+    function formatTime(ms) {
+      if (!ms || ms <= 0) return '00:00:000';
+      const minutes = Math.floor(ms / 60000).toString().padStart(2, '0');
+      const seconds = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+      const milliseconds = (ms % 1000).toString().padStart(3, '0');
+      return `${minutes}:${seconds}:${milliseconds}`;
+    }
+
+    // Load participants from localStorage
+    const participantSelect = document.getElementById('participantSelect');
+    const participantDisplay = document.getElementById('participantDisplay');
+    function loadParticipants() {
+      const participants = JSON.parse(localStorage.getItem('participants') || '[]');
+      participantSelect.innerHTML = '<option value="">Pilih Peserta</option>';
+      participants.forEach(p => {
+        if (!p.recordedTime) {
+          const option = document.createElement('option');
+          option.value = p.name;
+          option.textContent = p.name;
+          participantSelect.appendChild(option);
+        }
+      });
+      return participants;
+    }
+
+    // Update Top 3 Chart and Marquee
+    function updateTop3Chart() {
+      const participants = JSON.parse(localStorage.getItem('participants') || '[]').sort((a, b) => (a.totalTime || Infinity) - (b.totalTime || Infinity));
+      document.getElementById('goldName').textContent = participants[0]?.name || 'Tiada';
+      document.getElementById('goldTime').textContent = participants[0]?.totalTime ? formatTime(participants[0].totalTime) : '00:00:000';
+      document.getElementById('silverName').textContent = participants[1]?.name || 'Tiada';
+      document.getElementById('silverTime').textContent = participants[1]?.totalTime ? formatTime(participants[1].totalTime) : '00:00:000';
+      document.getElementById('bronzeName').textContent = participants[2]?.name || 'Tiada';
+      document.getElementById('bronzeTime').textContent = participants[2]?.totalTime ? formatTime(participants[2].totalTime) : '00:00:000';
+      updateMarquee();
+    }
+
+    // Update Marquee with dynamic speed
+    function updateMarquee() {
+      const participants = JSON.parse(localStorage.getItem('participants') || '[]');
+      const marqueeText = document.getElementById('marqueeText');
+      let marqueeContent = '';
+
+      const hasStarted = participants.some(p => p.totalTime != null);
+      
+      if (!hasStarted) {
+        participants.sort((a, b) => a.name.localeCompare(b.name));
+        marqueeContent = participants.length === 0 
+          ? 'Tiada kedudukan tersedia' 
+          : participants.map((p, index) => `Kedudukan ${index + 1}: ${p.name} - Tiada Catatan Masa`).join(' | ');
+      } else {
+        participants.sort((a, b) => (a.totalTime || Infinity) - (b.totalTime || Infinity));
+        marqueeContent = participants.map((p, index) => 
+          `Kedudukan ${index + 1}: ${p.name} - ${p.totalTime ? formatTime(p.totalTime) : 'Tiada Catatan Masa'}`
+        ).join(' | ');
+      }
+
+      marqueeText.textContent = marqueeContent;
+      const textLength = marqueeContent.length;
+      const baseSpeed = textLength / 5;
+      const animationDuration = Math.max(baseSpeed, 180);
+      marqueeText.style.animation = `marquee ${animationDuration}s linear infinite`;
+    }
+
+    // Listen for participant changes
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'participants') {
+        console.log('Participants updated:', event.newValue);
+        loadParticipants();
+        updateTop3Chart();
+      }
+    });
+
+    // Timer logic
+    let timerInterval;
+    let countdownInterval;
+    let finalCountdownInterval;
+    let autoSaveInterval;
+    let countdownValue = 10;
+    let finalCountdownValue = 9;
+    let startTimestamp;
+    let isManualStop = false;
+    let isLandingDelayActive = false;
+    let isTimeLimitStop = false;
+    let targetTime = 3 * 60 * 1000;
+    let isFinalCountdownActive = false;
+    let isPaused = false;
+    let pausedTime = 0;
+
+    const timerDisplay = document.getElementById('timer');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const timerLimit = document.getElementById('timerLimit');
+    const confirmModal = document.getElementById('confirmModal');
+    const modalTime = document.getElementById('modalTime');
+    const penaltyInput = document.getElementById('penaltyInput');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const autoSaveCountdown = document.getElementById('autoSaveCountdown');
+
+    // Elemen dialog box
+    const startConfirmDialog = document.getElementById('startConfirmDialog');
+    const startConfirmOverlay = document.getElementById('startConfirmOverlay');
+    const confirmStartBtn = document.getElementById('confirmStartBtn');
+    const cancelStartBtn = document.getElementById('cancelStartBtn');
+    const confirmParticipantName = document.getElementById('confirmParticipantName');
+    const noParticipantDialog = document.getElementById('noParticipantDialog');
+    const noParticipantOverlay = document.getElementById('noParticipantOverlay');
+    const closeNoParticipantBtn = document.getElementById('closeNoParticipantBtn');
+    const resetConfirmDialog = document.getElementById('resetConfirmDialog');
+    const resetConfirmOverlay = document.getElementById('resetConfirmOverlay');
+    const confirmResetBtn = document.getElementById('confirmResetBtn');
+    const cancelResetBtn = document.getElementById('cancelResetBtn');
+
+    // Elemen untuk IP input dialog
+    const ipInputDialog = document.getElementById('ipInputDialog');
+    const ipInputOverlay = document.getElementById('ipInputOverlay');
+    const ipInput = document.getElementById('ipInput');
+    const saveIpBtn = document.getElementById('saveIpBtn');
+    const cancelIpBtn = document.getElementById('cancelIpBtn');
+    const connectBtn = document.getElementById('connectBtn');
+
+    // IP input dialog event listeners
+    connectBtn.addEventListener('click', () => {
+      ipInput.value = espIp;
+      ipInputDialog.style.display = 'block';
+      ipInputOverlay.style.display = 'block';
+    });
+
+    saveIpBtn.addEventListener('click', () => {
+      const newIp = ipInput.value.trim();
+      if (newIp) {
+        espIp = newIp;
+        localStorage.setItem('espIp', newIp);
+        alert('IP telah disimpan: ' + newIp);
+      } else {
+        alert('Sila masukkan alamat IP yang sah.');
+      }
+      ipInputDialog.style.display = 'none';
+      ipInputOverlay.style.display = 'none';
+    });
+
+    cancelIpBtn.addEventListener('click', () => {
+      ipInputDialog.style.display = 'none';
+      ipInputOverlay.style.display = 'none';
+    });
+
+    // Update target time based on dropdown selection
+    timerLimit.addEventListener('change', (e) => {
+      if (e.target.value) {
+        targetTime = parseInt(e.target.value) * 60 * 1000;
+      }
+      const state = loadTimerState();
+      if (!state.isRunning && !state.isCountingDown && !isPaused) {
+        timerDisplay.textContent = '00:00:000';
+      }
+    });
+
+    // Load timer state from localStorage
+    function loadTimerState() {
+      const state = JSON.parse(localStorage.getItem('timerState') || '{}');
+      return {
+        startTime: state.startTime || null,
+        isRunning: state.isRunning || false,
+        pausedTime: state.pausedTime || 0,
+        participant: state.participant || '',
+        isCountingDown: state.isCountingDown || false,
+        countdownValue: state.countdownValue || 10,
+        isPaused: state.isPaused || false
+      };
+    }
+
+    // Save timer state to localStorage
+    function saveTimerState(state) {
+      console.log('Saving timer state:', state);
+      localStorage.setItem('timerState', JSON.stringify(state));
+    }
+
+    // Initialize timer based on state
+    function initializeTimer() {
+      const state = loadTimerState();
+      console.log('Initializing timer with state:', state);
+      clearInterval(timerInterval);
+      clearInterval(countdownInterval);
+      clearInterval(finalCountdownInterval);
+      if (state.isCountingDown && state.countdownValue > 0) {
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+        participantSelect.disabled = true;
+        participantSelect.value = state.participant;
+        participantDisplay.textContent = `Peserta: ${state.participant}`;
+        participantDisplay.classList.remove('hidden');
+        participantSelect.classList.add('hidden');
+        timerDisplay.classList.add('pulse');
+        timerDisplay.textContent = state.countdownValue;
+        countdownInterval = setInterval(() => {
+          const currentState = loadTimerState();
+          if (currentState.countdownValue <= 0) {
+            clearInterval(countdownInterval);
+            startTimer();
+          } else {
+            timerDisplay.textContent = currentState.countdownValue;
+          }
+        }, 1000);
+      } else if (state.isRunning && state.startTime) {
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+        participantSelect.disabled = true;
+        participantSelect.value = state.participant;
+        participantDisplay.textContent = `Peserta: ${state.participant}`;
+        participantDisplay.classList.remove('hidden');
+        participantSelect.classList.add('hidden');
+        timerDisplay.classList.remove('pulse');
+        timerInterval = setInterval(() => {
+          const currentState = loadTimerState();
+          if (currentState.isRunning && currentState.startTime) {
+            const currentTime = Date.now() - currentState.startTime;
+            if (!isFinalCountdownActive) {
+              timerDisplay.textContent = formatTime(currentTime);
+            }
+            checkFinalCountdown(currentTime);
+          }
+        }, 10);
+      } else if (state.isPaused && state.pausedTime > 0) {
+        isPaused = true;
+        pausedTime = state.pausedTime;
+        timerDisplay.textContent = formatTime(state.pausedTime);
+        participantSelect.value = state.participant;
+        participantDisplay.textContent = `Peserta: ${state.participant}`;
+        participantDisplay.classList.remove('hidden');
+        participantSelect.classList.add('hidden');
+        startBtn.disabled = false;
+        pauseBtn.disabled = false;
+        pauseBtn.textContent = 'Sambung';
+        stopBtn.disabled = false;
+      } else if (state.pausedTime > 0) {
+        timerDisplay.textContent = formatTime(state.pausedTime);
+        participantSelect.value = state.participant;
+        participantDisplay.textContent = `Peserta: ${state.participant}`;
+        participantDisplay.classList.remove('hidden');
+        participantSelect.classList.add('hidden');
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = true;
+      } else {
+        timerDisplay.textContent = '00:00:000';
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = true;
+        participantSelect.disabled = false;
+        participantDisplay.classList.add('hidden');
+        participantSelect.classList.remove('hidden');
+      }
+    }
+
+    // Listen for storage changes
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'timerState') {
+        console.log('Storage event detected:', event.newValue);
+        initializeTimer();
+      }
+    });
+
+    // Fallback polling for timer state
+    setInterval(() => {
+      const state = loadTimerState();
+      if (state.isRunning && state.startTime && !isFinalCountdownActive) {
+        const currentTime = Date.now() - state.startTime;
+        timerDisplay.textContent = formatTime(currentTime);
+      } else if (state.isCountingDown && state.countdownValue > 0) {
+        timerDisplay.textContent = state.countdownValue;
+      }
+    }, 100);
+
+    function formatTimestamp(date) {
+      return date.toLocaleString('ms-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function playBeep(duration = 0.1) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+      oscillator.connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + duration);
+    }
+
+    function startCountdown() {
+      const state = loadTimerState();
+      state.isRunning = false;
+      state.pausedTime = 0;
+      state.participant = participantSelect.value;
+      state.isCountingDown = true;
+      state.countdownValue = countdownValue;
+      state.isPaused = false;
+      saveTimerState(state);
+      participantSelect.classList.add('hidden');
+      participantDisplay.textContent = `Peserta: ${participantSelect.value}`;
+      participantDisplay.classList.remove('hidden');
+      timerDisplay.classList.add('pulse');
+      timerDisplay.textContent = countdownValue;
+      playBeep();
+
+      fetch(`http://${espIp}/countdown-blink`)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          return response.text();
+        })
+        .then(data => console.log('Countdown Blink Response:', data))
+        .catch(error => {
+          console.error('Error triggering countdown blink:', error);
+          alert('Gagal menghidupkan LED kiraan mundur. Sila semak sambungan ke ESP8266.');
+        });
+
+      countdownInterval = setInterval(() => {
+        countdownValue--;
+        const currentState = loadTimerState();
+        currentState.countdownValue = countdownValue;
+        saveTimerState(currentState);
+        if (countdownValue <= 0) {
+          clearInterval(countdownInterval);
+          currentState.isCountingDown = false;
+          saveTimerState(currentState);
+          timerDisplay.textContent = '00:00:000';
+          playBeep(0.5);
+          startTimer();
+        } else {
+          timerDisplay.textContent = countdownValue;
+          playBeep();
+        }
+      }, 1000);
+    }
+
+    // Check if timer is within the last 10 seconds of the target time
+    function checkFinalCountdown(currentTime) {
+      const timeRemaining = targetTime - currentTime;
+      if (timeRemaining <= 10000 && timeRemaining > 0 && !finalCountdownInterval) {
+        isFinalCountdownActive = true;
+        finalCountdownValue = 9;
+        timerDisplay.classList.add('pulse');
+        finalCountdownInterval = setInterval(() => {
+          const elapsed = Date.now() - loadTimerState().startTime;
+          const remaining = Math.max(0, targetTime - elapsed);
+          if (remaining <= 0) {
+            clearInterval(finalCountdownInterval);
+            finalCountdownInterval = null;
+            isFinalCountdownActive = false;
+            isTimeLimitStop = true;
+            stopTimer();
+            speechSynthesis.speak(new SpeechSynthesisUtterance("Times up...please land safely"));
+          } else {
+            const secondsRemaining = Math.ceil(remaining / 1000) - 1;
+            finalCountdownValue = Math.max(0, secondsRemaining);
+            const numberWords = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            if (finalCountdownValue <= 9) {
+              timerDisplay.textContent = finalCountdownValue.toString();
+              timerDisplay.classList.remove('text-blue-800');
+              timerDisplay.classList.add(`final-countdown-${finalCountdownValue}`);
+              const utterance = new SpeechSynthesisUtterance(numberWords[finalCountdownValue]);
+              speechSynthesis.speak(utterance);
+            }
+          }
+        }, 1000);
+      }
+    }
+
+    function startTimer() {
+      const state = loadTimerState();
+      state.startTime = Date.now();
+      state.isRunning = true;
+      state.pausedTime = 0;
+      state.participant = participantSelect.value;
+      state.isCountingDown = false;
+      state.isPaused = false;
+      saveTimerState(state);
+      timerInterval = setInterval(() => {
+        const currentState = loadTimerState();
+        if (currentState.isRunning && currentState.startTime) {
+          const currentTime = Date.now() - currentState.startTime;
+          if (!isFinalCountdownActive) {
+            timerDisplay.classList.add('text-blue-800');
+            timerDisplay.textContent = formatTime(currentTime);
+          }
+          checkFinalCountdown(currentTime);
+          if (currentTime >= targetTime && !finalCountdownInterval) {
+            isTimeLimitStop = true;
+            stopTimer();
+            speechSynthesis.speak(new SpeechSynthesisUtterance("Times up...please land safely"));
+          }
+        }
+      }, 10);
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      stopBtn.disabled = false;
+      participantSelect.disabled = true;
+
+      const takeOffUtterance = new SpeechSynthesisUtterance("TAKE OFF");
+      takeOffUtterance.volume = 1;
+      speechSynthesis.speak(takeOffUtterance);
+
+      fetch(`http://${espIp}/start-timer`)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          return response.text();
+        })
+        .then(data => console.log('Start Timer Response:', data))
+        .catch(error => {
+          console.error('Error starting timer LED blink:', error);
+          alert('Gagal menghidupkan LED mula. Sila semak sambungan ke ESP8266.');
+        });
+    }
+
+    function pauseTimer() {
+      const state = loadTimerState();
+      if (state.isRunning && !isPaused) {
+        clearInterval(timerInterval);
+        clearInterval(finalCountdownInterval);
+        const elapsedTime = Date.now() - state.startTime;
+        state.isRunning = false;
+        state.isPaused = true;
+        state.pausedTime = elapsedTime;
+        saveTimerState(state);
+        pausedTime = elapsedTime;
+        timerDisplay.textContent = formatTime(elapsedTime);
+        pauseBtn.textContent = 'Sambung';
+        isPaused = true;
+      } else if (isPaused) {
+        resumeTimer();
+      }
+    }
+
+    function resumeTimer() {
+      const state = loadTimerState();
+      state.startTime = Date.now() - state.pausedTime;
+      state.isRunning = true;
+      state.isPaused = false;
+      saveTimerState(state);
+      timerInterval = setInterval(() => {
+        const currentState = loadTimerState();
+        if (currentState.isRunning && currentState.startTime) {
+          const currentTime = Date.now() - currentState.startTime;
+          if (!isFinalCountdownActive) {
+            timerDisplay.classList.add('text-blue-800');
+            timerDisplay.textContent = formatTime(currentTime);
+          }
+          checkFinalCountdown(currentTime);
+          if (currentTime >= targetTime && !finalCountdownInterval) {
+            isTimeLimitStop = true;
+            stopTimer();
+            speechSynthesis.speak(new SpeechSynthesisUtterance("Times up...please land safely"));
+          }
+        }
+      }, 10);
+      pauseBtn.textContent = 'Pause';
+      isPaused = false;
+    }
+
+    function stopTimer() {
+      const state = loadTimerState();
+      if (state.isRunning || state.isCountingDown || isPaused) {
+        clearInterval(timerInterval);
+        clearInterval(countdownInterval);
+        clearInterval(finalCountdownInterval);
+        const elapsedTime = isPaused ? pausedTime : (state.isRunning ? Math.min(Date.now() - state.startTime, targetTime) : state.pausedTime);
+        state.isRunning = false;
+        state.isCountingDown = false;
+        state.isPaused = false;
+        state.pausedTime = elapsedTime;
+        saveTimerState(state);
+        timerDisplay.classList.remove('pulse');
+        startBtn.disabled = true;
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = 'Pause';
+        stopBtn.disabled = true;
+        participantSelect.disabled = false;
+        participantSelect.classList.remove('hidden');
+        participantDisplay.classList.add('hidden');
+        const recordedTime = elapsedTime;
+        const participant = participantSelect.value;
+        modalTime.textContent = `Waktu ${participant}: ${formatTime(recordedTime)}`;
+        penaltyInput.value = 0;
+        confirmModal.classList.remove('hidden');
+
+        let autoSaveTime = 30;
+        autoSaveCountdown.textContent = `Menyimpan secara automatik dalam: ${autoSaveTime} saat`;
+        autoSaveInterval = setInterval(() => {
+          autoSaveTime--;
+          autoSaveCountdown.textContent = `Menyimpan secara automatik dalam: ${autoSaveTime} saat`;
+          if (autoSaveTime <= 0) {
+            clearInterval(autoSaveInterval);
+            autoSaveRecord(recordedTime, participant, false);
+          }
+        }, 1000);
+
+        if (isManualStop || !isTimeLimitStop) {
+          fetch(`http://${espIp}/stop-indicator?duration=30`)
+            .then(response => {
+              if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+              return response.text();
+            })
+            .then(data => console.log('Stop Indicator Response:', data))
+            .catch(error => {
+              console.error('Error triggering stop indicator:', error);
+              alert('Gagal mengaktifkan LED dan buzzer. Sila semak sambungan ke ESP8266.');
+            });
+
+          speechSynthesis.speak(new SpeechSynthesisUtterance("Drone successfully Landing"));
+        }
+
+        isLandingDelayActive = true;
+        setTimeout(() => {
+          isLandingDelayActive = false;
+          startBtn.disabled = false;
+          pauseBtn.disabled = true;
+          stopBtn.disabled = true;
+          console.log('Kelewatan 30 saat selesai, boleh mulakan loop seterusnya.');
+          loadParticipants();
+        }, 30000);
+
+        isManualStop = false;
+        isTimeLimitStop = false;
+        isFinalCountdownActive = false;
+        isPaused = false;
+        pausedTime = 0;
+      }
+    }
+
+    function autoSaveRecord(recordedTime, participant, playSound = true) {
+      const penaltySeconds = parseFloat(penaltyInput.value) || 0;
+      const totalTime = recordedTime + (penaltySeconds * 1000);
+      const participants = JSON.parse(localStorage.getItem('participants') || '[]');
+      const p = participants.find(p => p.name === participant);
+      if (p) {
+        p.startTime = formatTimestamp(startTimestamp || new Date(loadTimerState().startTime));
+        p.endTime = formatTimestamp(new Date());
+        p.recordedTime = recordedTime;
+        p.penalty = penaltySeconds * 1000;
+        p.totalTime = totalTime;
+        localStorage.setItem('participants', JSON.stringify(participants));
+        updateTop3Chart();
+        if (playSound) {
+          speechSynthesis.speak(new SpeechSynthesisUtterance(`Perlumbaan ${participant} tamat. Waktu: ${formatTime(recordedTime)}, Penalti: ${penaltySeconds} saat`));
+        }
+      }
+      confirmModal.classList.add('hidden');
+      resetTimer();
+    }
+
+    function resetTimer() {
+      console.log('Reset button clicked');
+      clearInterval(timerInterval);
+      clearInterval(countdownInterval);
+      clearInterval(finalCountdownInterval);
+      clearInterval(autoSaveInterval);
+      confirmModal.classList.add('hidden');
+      const state = {
+        startTime: null,
+        isRunning: false,
+        pausedTime: 0,
+        participant: '',
+        isCountingDown: false,
+        countdownValue: 10,
+        isPaused: false
+      };
+      saveTimerState(state);
+      timerDisplay.classList.remove('pulse');
+      timerDisplay.classList.add('text-blue-800');
+      timerDisplay.textContent = '00:00:000';
+      countdownValue = 10;
+      finalCountdownValue = 9;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      pauseBtn.textContent = 'Pause';
+      stopBtn.disabled = true;
+      participantSelect.disabled = false;
+      participantSelect.classList.remove('hidden');
+      participantDisplay.classList.add('hidden');
+      participantSelect.value = '';
+      console.log('Timer reset complete');
+      loadParticipants();
+      isFinalCountdownActive = false;
+      isPaused = false;
+      pausedTime = 0;
+    }
+
+    function pollUltrasonicSensor() {
+      fetch(`http://${espIp}/check-ultrasonic`)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Sensor Response:', data);
+          if (data && data.stop === true) {
+            console.log('Sensor ultrasonik mengesan drone, menghentikan timer...');
+            isManualStop = false;
+            stopTimer();
+          } else {
+            console.log('Sensor status: Tiada drone dikesan');
+          }
+        })
+        .catch(error => console.error('Error polling sensor:', error));
+    }
+    setInterval(pollUltrasonicSensor, 500);
+
+    startBtn.addEventListener('click', () => {
+      if (isLandingDelayActive) {
+        alert('Sila tunggu kelewatan 30 saat selepas drone mendarat sebelum memulakan kiraan baharu.');
+        return;
+      }
+      const state = loadTimerState();
+      if (state.isRunning || state.isCountingDown) {
+        alert('Timer sudah berjalan!');
+        return;
+      }
+      if (!participantSelect.value) {
+        noParticipantDialog.style.display = 'block';
+        noParticipantOverlay.style.display = 'block';
+        speechSynthesis.speak(new SpeechSynthesisUtterance("Sila pilih peserta terlebih dahulu!"));
+        return;
+      }
+      const participant = participantSelect.value;
+      confirmParticipantName.textContent = `Peserta: ${participant}`;
+      startConfirmDialog.style.display = 'block';
+      startConfirmOverlay.style.display = 'block';
+      speechSynthesis.speak(new SpeechSynthesisUtterance("Peserta telah bersedia?"));
+      startBtn.disabled = true;
+    });
+
+    confirmStartBtn.addEventListener('click', () => {
+      const participant = participantSelect.value;
+      speechSynthesis.speak(new SpeechSynthesisUtterance(`Peserta ${participant}, bersedia!`));
+      setTimeout(() => {
+        countdownValue = 10;
+        startCountdown();
+      }, 2000);
+      startConfirmDialog.style.display = 'none';
+      startConfirmOverlay.style.display = 'none';
+      startBtn.disabled = true;
+    });
+
+    cancelStartBtn.addEventListener('click', () => {
+      startConfirmDialog.style.display = 'none';
+      startConfirmOverlay.style.display = 'none';
+      startBtn.disabled = false;
+    });
+
+    closeNoParticipantBtn.addEventListener('click', () => {
+      noParticipantDialog.style.display = 'none';
+      noParticipantOverlay.style.display = 'none';
+      startBtn.disabled = false;
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      pauseTimer();
+    });
+
+    stopBtn.addEventListener('click', () => {
+      isManualStop = true;
+      stopTimer();
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const recordedTime = loadTimerState().pausedTime;
+      const participant = participantSelect.value;
+      clearInterval(autoSaveInterval);
+      autoSaveRecord(recordedTime, participant, true);
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      clearInterval(autoSaveInterval);
+      confirmModal.classList.add('hidden');
+      resetTimer();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      console.log('Reset button clicked, opening confirmation dialog');
+      resetConfirmDialog.style.display = 'block';
+      resetConfirmOverlay.style.display = 'block';
+    });
+
+    confirmResetBtn.addEventListener('click', () => {
+      console.log('Confirmed reset');
+      resetTimer();
+      resetConfirmDialog.style.display = 'none';
+      resetConfirmOverlay.style.display = 'none';
+    });
+
+    cancelResetBtn.addEventListener('click', () => {
+      resetConfirmDialog.style.display = 'none';
+      resetConfirmOverlay.style.display = 'none';
+    });
+
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          fullscreenIcon.classList.remove('fa-expand');
+          fullscreenIcon.classList.add('fa-compress');
+        }).catch(err => {
+          console.error('Error attempting to enable fullscreen:', err);
+        });
+      } else {
+        document.exitFullscreen().then(() => {
+          fullscreenIcon.classList.remove('fa-compress');
+          fullscreenIcon.classList.add('fa-expand');
+        }).catch(err => {
+          console.error('Error attempting to exit fullscreen:', err);
+        });
+      }
+    });
+
+    const timerTitle = document.getElementById('timerTitle');
+    timerTitle.addEventListener('blur', () => {
+      const newTitle = timerTitle.textContent.trim();
+      if (newTitle === '') {
+        timerTitle.textContent = 'Timer Perlumbaan';
+      }
+    });
+
+    loadParticipants();
+    updateTop3Chart();
+    initializeTimer();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const participant = urlParams.get('participant');
+    if (participant) {
+      const state = loadTimerState();
+      if (!state.isRunning && !state.pausedTime && !state.isCountingDown) {
+        participantSelect.value = participant;
+        if (participantSelect.value) {
+          confirmParticipantName.textContent = `Peserta: ${participant}`;
+          startConfirmDialog.style.display = 'block';
+          startConfirmOverlay.style.display = 'block';
+          speechSynthesis.speak(new SpeechSynthesisUtterance("Peserta telah bersedia?"));
+          startBtn.disabled = true;
+        } else {
+          console.log(`Peserta ${participant} tidak ditemui dalam senarai.`);
+          noParticipantDialog.style.display = 'block';
+          noParticipantOverlay.style.display = 'block';
+          speechSynthesis.speak(new SpeechSynthesisUtterance("Sila pilih peserta terlebih dahulu!"));
+        }
+      }
+    }
+  </script>
+</body>
+</html>

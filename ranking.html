@@ -1,0 +1,331 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kedudukan - Drone Race Timer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      background-image: url('background.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+    .nav-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .logo:hover {
+      transform: scale(1.05);
+    }
+    header, section, footer {
+      background-color: rgba(255, 255, 255, 0.9); /* Semiparent for readability */
+      border-radius: 10px;
+      padding: 20px;
+    }
+    header {
+      background-color: rgba(37, 99, 235, 0.9); /* Blue with opacity */
+    }
+    footer {
+      background-color: rgba(37, 99, 235, 0.9);
+    }
+    .tvet-logo {
+      width: 800px; /* Saiz: 800px lebar */
+      height: 118px; /* Saiz: 118px tinggi */
+      background-color: transparent; /* Latar belakang lutsinar */
+      padding: 5px;
+      border-radius: 5px;
+      transition: transform 0.3s ease;
+    }
+    .tvet-logo:hover {
+      transform: scale(1.01);
+    }
+    /* Pelarasan untuk header agar seimbang dengan logo besar */
+    header .flex-col {
+      padding: 20px 0;
+    }
+    header .flex.items-center {
+      flex-direction: column; /* Susun logo dan ikon drone secara menegak */
+      gap: 10px;
+    }
+    /* Kecilkan navigasi dan hanya gunakan ikon */
+    .nav-btn {
+      padding: 8px; /* Kurangkan padding untuk saiz kecil */
+      border-radius: 50%; /* Jadikan bulat */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-btn i {
+      font-size: 1.2rem; /* Saiz ikon kecil */
+    }
+    /* Gaya untuk jadual kedudukan */
+    .ranking-table-section {
+      max-width: 1000px; /* Lebarkan sedikit untuk menampung lajur tambahan */
+      margin: 0 auto;
+      margin-top: 20px;
+    }
+    .ranking-table-section h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .ranking-table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: rgba(255, 255, 250, 0.95);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .ranking-table th, .ranking-table td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    .ranking-table th {
+      background-color: #2563eb; /* Warna biru seperti header */
+      color: white;
+      font-weight: bold;
+    }
+    .ranking-table tr:nth-child(even) {
+      background-color: #f9f9f9; /* Warna latar belakang bergantian untuk baris */
+    }
+    .ranking-table tr:hover {
+      background-color: #e0f7ff; /* Kesan hover */
+      cursor: pointer;
+    }
+    .medal-icon {
+      font-size: 1.5rem;
+      margin-right: 5px;
+    }
+    .medal-gold {
+      color: #FFD700; /* Gold color */
+    }
+    .medal-silver {
+      color: #C0C0C0; /* Silver color */
+    }
+    .medal-bronze {
+      color: #CD7F32; /* Bronze color */
+    }
+    /* Gaya untuk butang print */
+    #printBtn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background-color: rgba(37, 99, 235, 0.9);
+      color: white;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1001;
+      transition: transform 0.3s ease;
+    }
+    #printBtn:hover {
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body class="text-gray-800 font-roboto">
+  <header class="text-white py-6 text-center">
+    <div class="flex flex-col items-center">
+      <div class="flex items-center gap-4">
+        <img src="tvet-logo.png" alt="TVET Malaysia Logo" class="tvet-logo">
+        <i class="fas fa-drone text-6xl text-blue-100 logo transition-transform"></i>
+      </div>
+      <h1 class="text-3xl font-bold mt-2">AeroXplore 2025 Hari Terbuka ADTEC JTM KAMPUS SANDAKAN</h1>
+      <p id="dateTime" class="text-lg mt-2">Hari, Masa, Tarikh</p>
+      <div class="flex flex-wrap justify-center gap-2 my-2">
+        <a href="index.html" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white nav-btn transition-transform">
+          <i class="fas fa-home"></i>
+        </a>
+        <a href="admin.html" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white nav-btn transition-transform">
+          <i class="fas fa-table"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <section class="flex flex-col items-center my-8">
+    <section class="ranking-table-section">
+      <h2 class="text-xl font-semibold mb-4">Kedudukan Peserta</h2>
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>Kedudukan</th>
+            <th>Nama Peserta</th>
+            <th>Masa Mula</th>
+            <th>Masa Tamat</th>
+            <th>Catatan Masa</th>
+            <th>Penalti</th>
+            <th>Jumlah Masa</th>
+          </tr>
+        </thead>
+        <tbody id="rankingTableBody"></tbody>
+      </table>
+    </section>
+  </section>
+
+  <button id="printBtn" title="Cetak">
+    <i class="fas fa-print"></i>
+  </button>
+
+  <button id="fullscreenBtn" class="fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700">
+    <i id="fullscreenIcon" class="fas fa-expand"></i>
+  </button>
+
+  <footer class="text-white text-center py-4 mt-8">
+    <p>@2025 TautoILPSDK</p>
+  </footer>
+
+  <script>
+    // Update date and time
+    function updateDateTime() {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      document.getElementById('dateTime').textContent = now.toLocaleDateString('ms-MY', options);
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    // Convert time string (MM:SS:ms) to milliseconds
+    function timeToMilliseconds(timeStr) {
+      if (!timeStr || timeStr === '-' || typeof timeStr !== 'string') return 0;
+      const parts = timeStr.split(':');
+      if (parts.length !== 3) return 0;
+      const [minutes, seconds, milliseconds] = parts.map(Number);
+      if (isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds)) return 0;
+      return (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
+    }
+
+    // Format milliseconds to MM:SS:ms
+    function formatTime(ms) {
+      if (!ms || ms <= 0) return '00:00:000';
+      const minutes = Math.floor(ms / 60000).toString().padStart(2, '0');
+      const seconds = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+      const milliseconds = (ms % 1000).toString().padStart(3, '0');
+      return `${minutes}:${seconds}:${milliseconds}`;
+    }
+    
+    // Update Ranking Table
+    function updateRankingTable() {
+      const participants = JSON.parse(localStorage.getItem('participants') || '[]').sort((a, b) => (a.totalTime || Infinity) - (b.totalTime || Infinity));
+      const rankingTableBody = document.getElementById('rankingTableBody');
+      rankingTableBody.innerHTML = ''; // Kosongkan jadual sebelum kemas kini
+      participants.forEach((p, index) => {
+        const recordedTime = p.recordedTime || 0;
+        const penaltyTime = p.penalty || 0;
+        const totalTime = (p.totalTime === 0 || p.totalTime) ? p.totalTime : null;
+        
+        // Ubah di sini: paparkan hanya nombor penalti
+        const penaltyAmount = penaltyTime > 0 ? (penaltyTime / 5000).toFixed(0) : 0;
+
+        const rank = index + 1;
+        const row = document.createElement('tr');
+        let rankDisplay = rank.toString();
+        // Tambah ikon pingat untuk 3 teratas
+        if (rank === 1) {
+          rankDisplay = `<i class="fas fa-medal medal-icon medal-gold"></i> ${rank}`;
+        } else if (rank === 2) {
+          rankDisplay = `<i class="fas fa-medal medal-icon medal-silver"></i> ${rank}`;
+        } else if (rank === 3) {
+          rankDisplay = `<i class="fas fa-medal medal-icon medal-bronze"></i> ${rank}`;
+        }
+        row.innerHTML = `
+          <td>${rankDisplay}</td>
+          <td>${p.name}</td>
+          <td>${p.startTime || '-'}</td>
+          <td>${p.endTime || '-'}</td>
+          <td>${recordedTime > 0 ? formatTime(recordedTime) : '-'}</td>
+          <td>${penaltyAmount > 0 ? penaltyAmount : '-'}</td>
+          <td>${totalTime !== null ? formatTime(totalTime) : '-'}</td>
+        `;
+        rankingTableBody.appendChild(row);
+      });
+    }
+
+    // Kemas kini jadual apabila data berubah
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'participants') {
+        console.log('Participants updated:', event.newValue);
+        updateRankingTable();
+      }
+    });
+
+    // Toggle fullscreen/unfullscreen
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        // Masuk mod fullscreen
+        document.documentElement.requestFullscreen().then(() => {
+          fullscreenIcon.classList.remove('fa-expand');
+          fullscreenIcon.classList.add('fa-compress');
+        }).catch(err => {
+          console.error('Error attempting to enable fullscreen:', err);
+        });
+      } else {
+        // Keluar mod fullscreen
+        document.exitFullscreen().then(() => {
+          fullscreenIcon.classList.remove('fa-compress');
+          fullscreenIcon.classList.add('fa-expand');
+        }).catch(err => {
+          console.error('Error attempting to exit fullscreen:', err);
+        });
+      }
+    });
+
+    // Logik untuk butang print
+    const printBtn = document.getElementById('printBtn');
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+
+    // Initialize on page load
+    updateRankingTable();
+  </script>
+</body>
+</html>
